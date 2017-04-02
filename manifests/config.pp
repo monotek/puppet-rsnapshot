@@ -135,8 +135,6 @@ class rsnapshot::config (
       content => template('rsnapshot/rsnapshot.erb'),
     }
 
-
-
     if has_key($hash, backup_scripts) {
       $hash[backup_scripts].each |$script, $scriptconf| {
         $real_script       = deep_merge($rsnapshot::params::backup_scripts[$script], $rsnapshot::backup_scripts[$script], $hash[backup_scripts][$script])
@@ -165,20 +163,24 @@ class rsnapshot::config (
     if rsnapshot_prefix_use == false {
       $rsnapshot_prefix = ''
     }
+    else {
+      # Make sure old cron files without rsnapshot_prefix are removed
+      file { "${cron_dir}/${host}":
+        ensure => absent,
+      }
+    }
 
     # cron on Debian seems to ignore files that have dots in their name; replace
     # them with underscores (issue #2)
     if $::osfamily == 'Debian' {
+      file { "${cron_dir}/${host}":
+        ensure => absent,
+      }
       $cron_name = regsubst($host, '\.', '_', 'G')
       $cronfile = "${cron_dir}/${rsnapshot_prefix}${cron_name}"
     }
     else {
       $cronfile = "${cron_dir}/${rsnapshot_prefix}${host}"
-    }
-
-    # Make sure old cron files without rsnapshot_prefix are removed
-    file { "${cron_dir}/${host}":
-      ensure => absent,
     }
 
     concat { $cronfile:
